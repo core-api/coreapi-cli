@@ -1,5 +1,6 @@
 from coreapi.compat import b64encode, force_bytes, string_types, text_type, urlparse
 from coreapi_cli import __version__ as client_version
+from coreapi_cli.history import History, dump_history, load_history
 import click
 import collections
 import coreapi
@@ -630,15 +631,15 @@ def bookmarks_get(name):
 
 def get_history():
     if not os.path.isfile(history_path):
-        return coreapi.history.History(max_items=20)
+        return History(max_items=20)
     history_file = open(history_path, 'rb')
     bytestring = history_file.read()
     history_file.close()
-    return coreapi.history.load_history(bytestring)
+    return load_history(bytestring)
 
 
 def set_history(history):
-    bytestring = coreapi.history.dump_history(history)
+    bytestring = dump_history(history)
     history_file = open(history_path, 'wb')
     history_file.write(bytestring)
     history_file.close()
