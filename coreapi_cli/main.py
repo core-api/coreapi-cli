@@ -1,4 +1,4 @@
-from coreapi.compat import b64encode, force_bytes, string_types, text_type, urlparse
+from coreapi.compat import b64encode, force_bytes, string_types, urlparse
 from coreapi_cli import __version__ as client_version
 from coreapi_cli.history import History, dump_history, load_history
 import click
@@ -317,27 +317,65 @@ def describe(path):
             click.echo('* %s' % name)
 
 
-def parse_params(ctx, param, value):
+def parse_params(ctx, param, tokens):
     ret = []
 
-    for field, data in value:
+    for token in tokens:
+        if '=' not in token:
+            raise click.BadParameter('Parameter "%s" should be in form of FIELD=VALUE')
+        field, value = token.split('=', 1)
+
         try:
-            pair = (field, json.loads(data))
+            pair = (field, json.loads(value))
         except:
-            pair = (field, data)
+            if value.startswith('{') or value.startswith('['):
+                # Guard against malformed composite objects being treated as strings.
+                raise click.BadParameter('Unclear if parameter "%s" should be interperted as a string or data. Use --data or --string instead.' % field)
+            pair = (field, value)
         ret.append(pair)
 
     return ret
 
 
-def parse_json(ctx, param, value):
+def parse_json(ctx, param, tokens):
     ret = []
 
-    for field, data in value:
+    for token in tokens:
+        if '=' not in token:
+            raise click.BadParameter('Data parameter "%s" should be in form of FIELD=VALUE')
+        field, value = token.split('=', 1)
+
         try:
-            pair = (field, json.loads(data))
+            pair = (field, json.loads(value))
         except:
-            raise click.BadParameter('Invalid JSON for data argument "%s"' % field)
+            raise click.BadParameter('Could not parse value for data argument "%s"' % field)
+        ret.append(pair)
+
+    return ret
+
+
+def parse_strings(ctx, param, tokens):
+    ret = []
+
+    for token in tokens:
+        if '=' not in token:
+            raise click.BadParameter('String parameter "%s" should be in form of FIELD=VALUE')
+        pair = token.split('=', 1)
+        ret.append(pair)
+
+    return ret
+
+
+def parse_files(ctx, param, values):
+    ret = []
+    converter = click.File('rb')
+
+    for item in values:
+        if '=' not in item:
+            raise click.BadParameter('String parameter "%s" should be in form of FIELD=VALUE')
+        field, value = item.split('=', 1)
+        input_file = converter.convert(value, param, ctx)
+        pair = (field, input_file)
         ret.append(pair)
 
     return ret
@@ -345,10 +383,10 @@ def parse_json(ctx, param, value):
 
 @click.command(help='Interact with the active document.\n\nRequires a PATH to a link in the document.\n\nExample:\n\ncoreapi action users add_user --param username tom --param is_admin true')
 @click.argument('path', nargs=-1)
-@click.option('params', '--param', '-p', type=(text_type, text_type), multiple=True, callback=parse_params, metavar="FIELD VALUE", help='Parameter for the action.')
-@click.option('strings', '--string', '-s', type=(text_type, text_type), multiple=True, metavar="FIELD STRING", help='String parameter for the action.')
-@click.option('data', '--data', '-d', type=(text_type, text_type), multiple=True, callback=parse_json, metavar="FIELD DATA", help='Data parameter for the action.')
-@click.option('files', '--file', '-f', type=(text_type, click.File('rb')), multiple=True, metavar="FIELD FILENAME", help='File parameter for the action.')
+@click.option('params', '--param', '-p', callback=parse_params, multiple=True, metavar="FIELD=VALUE", help='Parameter for the action.')
+@click.option('strings', '--string', '-s', callback=parse_strings, multiple=True, metavar="FIELD=STRING", help='String parameter for the action.')
+@click.option('data', '--data', '-d', callback=parse_json, multiple=True, metavar="FIELD=DATA", help='Data parameter for the action.')
+@click.option('files', '--file', '-f', callback=parse_files, multiple=True, metavar="FIELD=FILENAME", help='File parameter for the action.')
 @click.option('--action', '-a', metavar="ACTION", help='Set the link action explicitly.', default=None)
 @click.option('--encoding', '-e', metavar="ENCODING", help='Set the link encoding explicitly.', default=None)
 @click.option('--transform', '-t', metavar="TRANSFORM", help='Set the link transform explicitly.', default=None)
