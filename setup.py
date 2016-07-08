@@ -61,12 +61,20 @@ setup(
     author_email='tom@tomchristie.com',
     packages=get_packages('coreapi_cli'),
     package_data=get_package_data('coreapi_cli'),
-    install_requires=[],
+    install_requires=[
+        'coreapi',
+        'click'
+    ],
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-    ]
+    ],
+    entry_points={
+        'console_scripts': [
+            'coreapi=coreapi_cli.main:client'
+        ],
+    },
 )
