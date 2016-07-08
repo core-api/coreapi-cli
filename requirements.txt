@@ -1,7 +1,13 @@
+click==6.6
+coreapi==1.30.0
 coverage==4.1
 flake8==2.6.2
+itypes==1.1.0
 mccabe==0.5.0
 py==1.4.31
 pycodestyle==2.0.0
 pyflakes==1.2.3
 pytest==2.9.2
+requests==2.10.0
+simplejson==3.8.2
+uritemplate==0.6
