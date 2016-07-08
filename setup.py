@@ -62,8 +62,8 @@ setup(
     packages=get_packages('coreapi_cli'),
     package_data=get_package_data('coreapi_cli'),
     install_requires=[
-        'coreapi',
-        'click'
+        'coreapi>=1.30.0',
+        'click>=6.0'
     ],
     classifiers=[
         'Intended Audience :: Developers',
