@@ -1,5 +1,5 @@
 click==6.6
-coreapi==1.29.0
+coreapi==1.30.0
 coverage==4.1
 flake8==2.6.2
 itypes==1.1.0
