@@ -62,7 +62,7 @@ setup(
     packages=get_packages('coreapi_cli'),
     package_data=get_package_data('coreapi_cli'),
     install_requires=[
-        'coreapi>=1.30.0',
+        'coreapi>=1.31.0',
         'click>=6.0'
     ],
     classifiers=[
