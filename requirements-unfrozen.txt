@@ -1,8 +1,0 @@
-# Package requirements
-coreapi
-click
-
-# Testing requirements
-coverage
-flake8
-pytest
