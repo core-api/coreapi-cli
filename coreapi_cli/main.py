@@ -3,11 +3,9 @@ from coreapi_cli import __version__ as client_version
 from coreapi_cli import codec_plugins
 from coreapi_cli.history import History, dump_history, load_history
 import click
-import collections
 import coreapi
 import json
 import os
-import pkg_resources
 import sys
 
 
@@ -124,11 +122,7 @@ def get_client(decoders=None, debug=False):
         callbacks = {}
 
     if decoders is None:
-        decoders = [
-            codec_lookup[key] for key in decoder_formats
-        ] + [
-            codec_lookup[key] for key in data_formats
-        ]
+        decoders = codec_plugins.decoders
 
     http_transport = coreapi.transports.HTTPTransport(credentials, headers, **callbacks)
     return coreapi.Client(decoders=decoders, transports=[http_transport])
