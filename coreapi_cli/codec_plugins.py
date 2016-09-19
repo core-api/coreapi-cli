@@ -64,10 +64,10 @@ codecs = collections.OrderedDict([
 
 decoders = collections.OrderedDict([
     (package.name, cls) for (package, cls) in codec_packages
-    if hasattr(cls, 'decode')
+    if 'decoding' in supports(cls)
 ])
 
 encoders = collections.OrderedDict([
     (package.name, cls) for (package, cls) in codec_packages
-    if hasattr(cls, 'encode')
+    if 'encoding' in supports(cls)
 ])

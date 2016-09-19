@@ -186,7 +186,7 @@ def client(ctx, version):
 @click.command(help='Fetch a document from the given URL.')
 @click.argument('url')
 @click.option('--debug', '-d', is_flag=True, help='Display the request/response')
-@click.option('--format', default=None, type=click.Choice(codec_plugins.decoders.keys()))
+@click.option('--format', default=None, help='Force a given decoder', type=click.Choice(codec_plugins.decoders.keys()))
 def get(url, debug, format):
     if format:
         decoders = [codec_plugins.decoders[format]]
@@ -210,7 +210,7 @@ def get(url, debug, format):
 
 @click.command(help='Load a document from disk.')
 @click.argument('input_file', type=click.File('rb'))
-@click.option('--format', default='corejson', type=click.Choice(codec_plugins.decoders.keys()))
+@click.option('--format', default='corejson', help='Use the specified decoder', type=click.Choice(codec_plugins.decoders.keys()))
 def load(input_file, format):
     input_bytes = input_file.read()
     input_file.close()
@@ -226,7 +226,7 @@ def load(input_file, format):
 
 
 @click.command(help='Dump a document to console.')
-@click.option('--format', default='corejson', type=click.Choice(codec_plugins.encoders.keys()))
+@click.option('--format', default='corejson', help='Use the specified encoder', type=click.Choice(codec_plugins.encoders.keys()))
 def dump(format):
     doc = get_document()
     if doc is None:
@@ -425,7 +425,7 @@ def action(path, params, strings, data, files, action, encoding, transform, debu
 
 @click.command(help='Reload the current document.')
 @click.option('--debug', '-d', is_flag=True, help='Display the request/response')
-@click.option('--format', default=None, type=click.Choice(codec_plugins.decoders.keys()))
+@click.option('--format', default=None, help='Force a given decoder', type=click.Choice(codec_plugins.decoders.keys()))
 def reload_document(debug, format):
     doc = get_document()
     if doc is None:
