@@ -1,5 +1,6 @@
 import pkg_resources
 import collections
+import coreapi
 
 
 def sorting_func(package_info):
@@ -36,14 +37,28 @@ def get_codec_packages():
     ]
     packages = [
         (package, cls) for (package, cls) in packages
-        if hasattr(cls, 'decode') or hasattr(cls, 'encode')
+        if issubclass(cls, coreapi.codecs.BaseCodec) or hasattr(cls, 'decode') or hasattr(cls, 'encode')
     ]
     return sorted(packages, key=sorting_func)
 
 
+def supports(codec_cls):
+    """
+    Return a list of strings indicating supported operations.
+    """
+    if hasattr(codec_cls, 'encode') and hasattr(codec_cls, 'decode'):
+        return ['encoding', 'decoding']
+    elif hasattr(codec_cls, 'encode'):
+        return ['encoding']
+    elif hasattr(codec_cls, 'decode'):
+        return ['decoding']
+    # Fallback for pre-2.0 API.
+    return codec_cls().supports
+
+
 codec_packages = get_codec_packages()
 
-all_codecs = collections.OrderedDict([
+codecs = collections.OrderedDict([
     (package.name, cls) for (package, cls) in codec_packages
 ])
 

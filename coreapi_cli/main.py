@@ -742,13 +742,25 @@ def codecs():
 @click.command(help="List the installed codecs.")
 def codecs_show():
     # Note that this omits the data codecs of JSON and Text.
-    click.echo(click.style('Codecs', bold=True))
+
     col_1_len = max([len(key) for key in codec_plugins.codecs.keys()])
     col_2_len = max([len(codec.media_type) for codec in codec_plugins.codecs.values()])
-    fmt = '{key:%d} {media_type:%s} {supports}' % (col_1_len, col_2_len)
-    for key, codec in codecs.codec_plugins.items():
-        supports = ', '.join(codec.supports)
-        click.echo(fmt.format(key=key, media_type=codec.media_type, supports=supports))
+    col_3_len = max([len(', '.join(codec_plugins.supports(codec))) for codec in codec_plugins.codecs.values()])
+
+    col_1_len = max(col_1_len, len('Codec name'))
+    col_2_len = max(col_2_len, len('Media type'))
+    col_3_len = max(col_3_len, len('Support'))
+
+    fmt = '{key:%d} | {media_type:%s} | {supports:%d} | {dist}' % (col_1_len, col_2_len, col_3_len)
+    header = fmt.format(key='Codec name', media_type='Media type', supports='Support', dist='Package')
+    click.echo(click.style(header.replace('|', ' '), bold=True))
+
+    for package, codec_cls in codec_plugins.codec_packages:
+        name = package.name
+        media_type = getattr(codec_cls, 'media_type')
+        supports = ', '.join(codec_plugins.supports(codec_cls))
+        dist = package.dist.as_requirement()
+        click.echo(fmt.format(key=name, media_type=media_type, supports=supports, dist=dist))
 
 
 client.add_command(get)
