@@ -1,43 +1,12 @@
 from coreapi.compat import b64encode, force_bytes, string_types, urlparse
 from coreapi_cli import __version__ as client_version
+from coreapi_cli import codec_plugins
 from coreapi_cli.history import History, dump_history, load_history
 import click
-import collections
 import coreapi
 import json
 import os
-import pkg_resources
 import sys
-
-
-def codec_sorting_func(item):
-    key, codec = item
-    if key == 'corejson':
-        return (0, codec.media_type.count('*'), codec.media_type)
-
-    if ('decoding' in codec.supports and 'encoding' in codec.supports):
-        return (1, codec.media_type.count('*'), codec.media_type)
-    elif ('decoding' in codec.supports):
-        return (2, codec.media_type.count('*'), codec.media_type)
-    elif ('encoding' in codec.supports):
-        return (3, codec.media_type.count('*'), codec.media_type)
-    elif ('data' in codec.supports):
-        return (4, codec.media_type.count('*'), codec.media_type)
-
-    return (5, codec.media_type.count('*'), codec.media_type)
-
-
-def get_codecs():
-    unsorted_codecs = {}
-    for package in pkg_resources.iter_entry_points(group='coreapi.codecs'):
-        codec_class = package.load()
-        unsorted_codecs[package.name] = codec_class()
-
-    codecs = collections.OrderedDict()
-    for name, codec in sorted(unsorted_codecs.items(), key=codec_sorting_func):
-        codecs[name] = codec
-
-    return codecs
 
 
 config_path = None
@@ -47,11 +16,6 @@ history_path = None
 credentials_path = None
 headers_path = None
 bookmarks_path = None
-
-codec_lookup = get_codecs()
-decoder_formats = [key for key, codec in codec_lookup.items() if ('decoding' in codec.supports)]
-encoder_formats = [key for key, codec in codec_lookup.items() if ('encoding' in codec.supports)]
-data_formats = [key for key, codec in codec_lookup.items() if ('data' in codec.supports)]
 
 
 def setup_paths():
@@ -158,11 +122,7 @@ def get_client(decoders=None, debug=False):
         callbacks = {}
 
     if decoders is None:
-        decoders = [
-            codec_lookup[key] for key in decoder_formats
-        ] + [
-            codec_lookup[key] for key in data_formats
-        ]
+        decoders = codec_plugins.decoders
 
     http_transport = coreapi.transports.HTTPTransport(credentials, headers, **callbacks)
     return coreapi.Client(decoders=decoders, transports=[http_transport])
@@ -226,13 +186,13 @@ def client(ctx, version):
 @click.command(help='Fetch a document from the given URL.')
 @click.argument('url')
 @click.option('--debug', '-d', is_flag=True, help='Display the request/response')
-@click.option('--format', default=None, type=click.Choice(decoder_formats))
+@click.option('--format', default=None, help='Force a given decoder', type=click.Choice(codec_plugins.decoders.keys()))
 def get(url, debug, format):
     if format:
-        decoders = [codec_lookup[format]]
+        decoders = [codec_plugins.decoders[format]]
         force_codec = True
     else:
-        decoders = [codec_lookup[key] for key in decoder_formats]
+        decoders = codec_plugins.decoders.values()
         force_codec = False
     client = get_client(decoders=decoders, debug=debug)
     history = get_history()
@@ -250,11 +210,11 @@ def get(url, debug, format):
 
 @click.command(help='Load a document from disk.')
 @click.argument('input_file', type=click.File('rb'))
-@click.option('--format', default='corejson', type=click.Choice(decoder_formats))
+@click.option('--format', default='corejson', help='Use the specified decoder', type=click.Choice(codec_plugins.decoders.keys()))
 def load(input_file, format):
     input_bytes = input_file.read()
     input_file.close()
-    decoder = codec_lookup[format]
+    decoder = codec_plugins.decoders[format]
 
     history = get_history()
     doc = decoder.load(input_bytes)
@@ -266,14 +226,14 @@ def load(input_file, format):
 
 
 @click.command(help='Dump a document to console.')
-@click.option('--format', default='corejson', type=click.Choice(encoder_formats))
+@click.option('--format', default='corejson', help='Use the specified encoder', type=click.Choice(codec_plugins.encoders.keys()))
 def dump(format):
     doc = get_document()
     if doc is None:
         click.echo('No current document. Use `coreapi get` to fetch a document first.')
         sys.exit(1)
 
-    encoder = codec_lookup[format]
+    encoder = codec_plugins.encoders[format]
     output = encoder.dump(doc)
     click.echo(output)
 
@@ -465,7 +425,7 @@ def action(path, params, strings, data, files, action, encoding, transform, debu
 
 @click.command(help='Reload the current document.')
 @click.option('--debug', '-d', is_flag=True, help='Display the request/response')
-@click.option('--format', default=None, type=click.Choice(decoder_formats))
+@click.option('--format', default=None, help='Force a given decoder', type=click.Choice(codec_plugins.decoders.keys()))
 def reload_document(debug, format):
     doc = get_document()
     if doc is None:
@@ -473,10 +433,10 @@ def reload_document(debug, format):
         sys.exit(1)
 
     if format:
-        decoders = [codec_lookup[format]]
+        decoders = [codec_plugins.decoders[format]]
         force_codec = True
     else:
-        decoders = [codec_lookup[key] for key in decoder_formats]
+        decoders = codec_plugins.decoders.values()
         force_codec = False
 
     client = get_client(debug=debug, decoders=decoders)
@@ -782,13 +742,25 @@ def codecs():
 @click.command(help="List the installed codecs.")
 def codecs_show():
     # Note that this omits the data codecs of JSON and Text.
-    click.echo(click.style('Codecs', bold=True))
-    col_1_len = max([len(key) for key in codec_lookup.keys()])
-    col_2_len = max([len(codec.media_type) for codec in codec_lookup.values()])
-    fmt = '{key:%d} {media_type:%s} {supports}' % (col_1_len, col_2_len)
-    for key, codec in codec_lookup.items():
-        supports = ', '.join(codec.supports)
-        click.echo(fmt.format(key=key, media_type=codec.media_type, supports=supports))
+
+    col_1_len = max([len(key) for key in codec_plugins.codecs.keys()])
+    col_2_len = max([len(codec.media_type) for codec in codec_plugins.codecs.values()])
+    col_3_len = max([len(', '.join(codec_plugins.supports(codec))) for codec in codec_plugins.codecs.values()])
+
+    col_1_len = max(col_1_len, len('Codec name'))
+    col_2_len = max(col_2_len, len('Media type'))
+    col_3_len = max(col_3_len, len('Support'))
+
+    fmt = '{key:%d} | {media_type:%s} | {supports:%d} | {dist}' % (col_1_len, col_2_len, col_3_len)
+    header = fmt.format(key='Codec name', media_type='Media type', supports='Support', dist='Package')
+    click.echo(click.style(header.replace('|', ' '), bold=True))
+
+    for package, codec_cls in codec_plugins.codec_packages:
+        name = package.name
+        media_type = getattr(codec_cls, 'media_type')
+        supports = ', '.join(codec_plugins.supports(codec_cls))
+        dist = package.dist.as_requirement()
+        click.echo(fmt.format(key=name, media_type=media_type, supports=supports, dist=dist))
 
 
 client.add_command(get)
