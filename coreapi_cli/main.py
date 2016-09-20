@@ -1,4 +1,4 @@
-from coreapi.compat import b64encode, force_bytes, string_types, urlparse
+from coreapi.compat import b64encode, force_bytes, string_types
 from coreapi_cli import __version__ as client_version
 from coreapi_cli import codec_plugins
 from coreapi_cli.debug import DebugSession
