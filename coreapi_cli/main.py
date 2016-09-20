@@ -1,6 +1,7 @@
-from coreapi.compat import b64encode, force_bytes, string_types
+from coreapi.compat import b64encode, force_bytes
 from coreapi_cli import __version__ as client_version
 from coreapi_cli import codec_plugins
+from coreapi_cli.display import display
 from coreapi_cli.debug import DebugSession
 from coreapi_cli.history import History, dump_history, load_history
 import click
@@ -98,17 +99,6 @@ def set_document(doc):
     store = open(document_path, 'wb')
     store.write(content)
     store.close()
-
-
-def display(doc):
-    if isinstance(doc, (coreapi.Document, coreapi.Error, coreapi.Object, coreapi.Array, coreapi.Link)):
-        codec = coreapi.codecs.DisplayCodec()
-        return codec.dump(doc, colorize=True)
-    if doc is None:
-        return ''
-    if isinstance(doc, string_types):
-        return doc
-    return json.dumps(doc, indent=4, ensure_ascii=False, separators=coreapi.compat.VERBOSE_SEPARATORS)
 
 
 def json_load_bytes(bytes):

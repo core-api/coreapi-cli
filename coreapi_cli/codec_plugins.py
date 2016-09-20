@@ -1,6 +1,7 @@
 import pkg_resources
 import collections
 import coreapi
+import os
 
 
 def sorting_func(package_info):
@@ -28,6 +29,15 @@ def sorting_func(package_info):
 
 
 def instantiate_codec(cls):
+    if issubclass(cls, coreapi.codecs.DownloadCodec):
+        default_dir = os.path.join(os.path.expanduser('~'), '.coreapi')
+        config_dir = os.environ.get('COREAPI_CONFIG_DIR', default_dir)
+        download_dir = os.path.join(config_dir, 'downloads')
+        if not os.path.exists(config_dir):
+            os.mkdir(config_dir)
+        if not os.path.exists(download_dir):
+            os.mkdir(download_dir)
+        return cls(download_dir=download_dir)
     return cls()
 
 
