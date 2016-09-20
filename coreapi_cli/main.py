@@ -122,7 +122,7 @@ def get_client(decoders=None, debug=False):
         callbacks = {}
 
     if decoders is None:
-        decoders = codec_plugins.decoders
+        decoders = list(codec_plugins.decoders.values())
 
     http_transport = coreapi.transports.HTTPTransport(credentials, headers, **callbacks)
     return coreapi.Client(decoders=decoders, transports=[http_transport])
@@ -194,6 +194,7 @@ def get(url, debug, format):
     else:
         decoders = codec_plugins.decoders.values()
         force_codec = False
+
     client = get_client(decoders=decoders, debug=debug)
     history = get_history()
     try:
@@ -755,10 +756,10 @@ def codecs_show():
     header = fmt.format(key='Codec name', media_type='Media type', supports='Support', dist='Package')
     click.echo(click.style(header.replace('|', ' '), bold=True))
 
-    for package, codec_cls in codec_plugins.codec_packages:
+    for package, codec in codec_plugins.codec_packages:
         name = package.name
-        media_type = getattr(codec_cls, 'media_type')
-        supports = ', '.join(codec_plugins.supports(codec_cls))
+        media_type = getattr(codec, 'media_type')
+        supports = ', '.join(codec_plugins.supports(codec))
         dist = package.dist.as_requirement()
         click.echo(fmt.format(key=name, media_type=media_type, supports=supports, dist=dist))
 

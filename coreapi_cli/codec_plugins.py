@@ -27,6 +27,10 @@ def sorting_func(package_info):
     )
 
 
+def instantiate_codec(cls):
+    return cls()
+
+
 def get_codec_packages():
     """
     Returns a list of (package, codec_class) tuples.
@@ -36,38 +40,38 @@ def get_codec_packages():
         pkg_resources.iter_entry_points(group='coreapi.codecs')
     ]
     packages = [
-        (package, cls) for (package, cls) in packages
+        (package, instantiate_codec(cls)) for (package, cls) in packages
         if issubclass(cls, coreapi.codecs.BaseCodec) or hasattr(cls, 'decode') or hasattr(cls, 'encode')
     ]
     return sorted(packages, key=sorting_func)
 
 
-def supports(codec_cls):
+def supports(codec):
     """
     Return a list of strings indicating supported operations.
     """
-    if hasattr(codec_cls, 'encode') and hasattr(codec_cls, 'decode'):
+    if hasattr(codec, 'encode') and hasattr(codec, 'decode'):
         return ['encoding', 'decoding']
-    elif hasattr(codec_cls, 'encode'):
+    elif hasattr(codec, 'encode'):
         return ['encoding']
-    elif hasattr(codec_cls, 'decode'):
+    elif hasattr(codec, 'decode'):
         return ['decoding']
     # Fallback for pre-2.0 API.
-    return codec_cls().supports
+    return codec.supports
 
 
 codec_packages = get_codec_packages()
 
 codecs = collections.OrderedDict([
-    (package.name, cls) for (package, cls) in codec_packages
+    (package.name, codec) for (package, codec) in codec_packages
 ])
 
 decoders = collections.OrderedDict([
-    (package.name, cls) for (package, cls) in codec_packages
-    if 'decoding' in supports(cls)
+    (package.name, codec) for (package, codec) in codec_packages
+    if 'decoding' in supports(codec)
 ])
 
 encoders = collections.OrderedDict([
-    (package.name, cls) for (package, cls) in codec_packages
-    if 'encoding' in supports(cls)
+    (package.name, codec) for (package, codec) in codec_packages
+    if 'encoding' in supports(codec)
 ])
