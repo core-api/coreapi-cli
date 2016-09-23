@@ -15,8 +15,11 @@ def debug_request(request):
     for key, value in sorted(headers.items()):
         request_echo('%s: %s', key.title(), value)
     if request.body:
+        body_text = request.body
+        if isinstance(body_text, bytes):
+            body_text = body_text.decode('utf-8')
         request_echo('')
-        for line in request.body.splitlines():
+        for line in body_text.splitlines():
             request_echo(line)
 
 
