@@ -4,9 +4,15 @@ from requests.sessions import Session
 import click
 
 
+def expand_args(fmt, args):
+    if args:
+        return fmt % args
+    return fmt
+
+
 def debug_request(request):
     def request_echo(fmt, *args):
-        click.echo(click.style('> ', fg='blue') + (fmt % args))
+        click.echo(click.style('> ', fg='blue') + expand_args(fmt, args))
 
     headers = request.headers
     headers['host'] = urlparse.urlparse(request.url).hostname
@@ -26,15 +32,15 @@ def debug_request(request):
 def debug_response(response):
     def success_echo(fmt, *args):
         prompt = click.style('< ', fg='green')
-        click.echo(prompt + (fmt % args))
+        click.echo(prompt + expand_args(fmt, args))
 
     def failure_echo(fmt, *args):
         prompt = click.style('< ', fg='red')
-        click.echo(prompt + (fmt % args))
+        click.echo(prompt + expand_args(fmt, args))
 
     def info_echo(fmt, *args):
         prompt = click.style('< ', fg='yellow')
-        click.echo(prompt + (fmt % args))
+        click.echo(prompt + expand_args(fmt, args))
 
     response_class = ('%s' % response.status_code)[0] + 'xx'
     if response_class == '2xx':
