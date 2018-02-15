@@ -1,6 +1,8 @@
 from coreapi.compat import b64encode, force_bytes
 from coreapi_cli import __version__ as client_version
 from coreapi_cli import codec_plugins
+from coreapi_cli.auth import DomainCredentials
+from coreapi_cli.compat import JSONDecodeError
 from coreapi_cli.display import display
 from coreapi_cli.debug import DebugSession
 from coreapi_cli.history import History, dump_history, load_history
@@ -46,7 +48,7 @@ def coerce_key_types(doc, keys):
         if isinstance(active, coreapi.Array):
             try:
                 key = int(key)
-            except:
+            except ValueError:
                 pass
 
         # Descend through the document, so we can correctly identify
@@ -78,7 +80,7 @@ def get_client(decoders=None, debug=False):
         decoders = list(codec_plugins.decoders.values())
 
     http_transport = coreapi.transports.HTTPTransport(
-        credentials=credentials, headers=headers, session=session
+        auth=DomainCredentials(credentials), headers=headers, session=session
     )
     return coreapi.Client(decoders=decoders, transports=[http_transport])
 
@@ -268,7 +270,7 @@ def parse_params(ctx, param, tokens):
 
         try:
             pair = (field, json.loads(value))
-        except:
+        except JSONDecodeError:
             if value.startswith('{') or value.startswith('['):
                 # Guard against malformed composite objects being treated as strings.
                 raise click.BadParameter('Unclear if parameter "%s" should be interperted as a string or data. Use --data or --string instead.' % field)
@@ -288,7 +290,7 @@ def parse_json(ctx, param, tokens):
 
         try:
             pair = (field, json.loads(value))
-        except:
+        except JSONDecodeError:
             raise click.BadParameter('Could not parse value for data argument "%s"' % field)
         ret.append(pair)
 
