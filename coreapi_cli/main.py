@@ -1,6 +1,7 @@
 from coreapi.compat import b64encode, force_bytes
 from coreapi_cli import __version__ as client_version
 from coreapi_cli import codec_plugins
+from coreapi_cli.auth import DomainCredentials
 from coreapi_cli.display import display
 from coreapi_cli.debug import DebugSession
 from coreapi_cli.history import History, dump_history, load_history
@@ -78,7 +79,7 @@ def get_client(decoders=None, debug=False):
         decoders = list(codec_plugins.decoders.values())
 
     http_transport = coreapi.transports.HTTPTransport(
-        credentials=credentials, headers=headers, session=session
+        auth=DomainCredentials(credentials), headers=headers, session=session
     )
     return coreapi.Client(decoders=decoders, transports=[http_transport])
 
