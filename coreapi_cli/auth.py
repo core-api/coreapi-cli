@@ -1,12 +1,5 @@
+from coreapi_cli.compat import urlparse
 from requests.auth import AuthBase
-
-try:
-    # Python 2
-    import urlparse
-
-except ImportError:
-    # Python 3
-    import urllib.parse as urlparse
 
 
 class DomainCredentials(AuthBase):
