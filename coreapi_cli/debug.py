@@ -14,12 +14,14 @@ def debug_request(request):
     def request_echo(fmt, *args):
         click.echo(click.style('> ', fg='blue') + expand_args(fmt, args))
 
-    headers = request.headers
-    headers['host'] = urlparse.urlparse(request.url).hostname
-
     request_echo(click.style('%s %s HTTP/1.1', bold=True), request.method, request.path_url)
-    for key, value in sorted(headers.items()):
+
+    if 'host' not in request.headers:
+        request_echo('Host: %s', urlparse.urlparse(request.url).netloc)
+
+    for key, value in sorted(request.headers.items()):
         request_echo('%s: %s', key.title(), value)
+
     if request.body:
         body_text = request.body
         if isinstance(body_text, bytes):
