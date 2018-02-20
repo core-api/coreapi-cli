@@ -92,12 +92,12 @@ def get_document():
     content = store.read()
     store.close()
     codec = coreapi.codecs.CoreJSONCodec()
-    return codec.load(content)
+    return codec.decode(content)
 
 
 def set_document(doc):
     codec = coreapi.codecs.CoreJSONCodec()
-    content = codec.dump(doc)
+    content = codec.encode(doc)
     store = open(document_path, 'wb')
     store.write(content)
     store.close()
@@ -164,7 +164,7 @@ def load(input_file, format):
     decoder = codec_plugins.decoders[format]
 
     history = get_history()
-    doc = decoder.load(input_bytes)
+    doc = decoder.decode(input_bytes)
     click.echo(display(doc))
     if isinstance(doc, coreapi.Document):
         history = history.add(doc)
@@ -181,7 +181,7 @@ def dump(format):
         sys.exit(1)
 
     encoder = codec_plugins.encoders[format]
-    output = encoder.dump(doc)
+    output = encoder.encode(doc)
     click.echo(output)
 
 
